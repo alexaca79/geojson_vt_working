@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title></title>
+<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0"/>
+<link rel="stylesheet" href="css/leaflet.css"/>
+<script src="js/leaflet.js"></script>
+<script src="js/leaflet-hash.js"></script>
+<script src="js/TileLayer.GeoJSON.js"></script>
+<script src="js/corslite.js"></script>
+<script src="js/geojson-vt.js"></script>
+<style>
+body {padding: 0; margin: 0}
+html, body, #mapdiv {height: 100%; width: 100%;}
+.leaflet-container {background: #fff;}
+</style>
+</head>
+<body>
+<div id="mapdiv">
+<script>
+var std = L.tileLayer( 'http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    attribution: "Basemap"
+  });
+
+var decemArea = L.tileLayer('https://api.mapbox.com/styles/v1/alexaca79/cio62paoq000eainj69lr62r6/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYWxleGFjYTc5IiwiYSI6ImNpbzYyZGVlNzAyNjd2d2x6dHY1MnR6MjgifQ.anutU5yQ38NCFEMAM4Ubdw'
+        , {
+            attribution: "decemArea"
+        });
+
+var canvas = L.tileLayer.canvas();
+var tileIndex;
+var options = {maxZoom: 14, baseZoom: 14, maxPoints: 1727852, debug: 1};
+corslite('data/gda_000b11a_e - Copy.geojson', function(err, resp) {
+  tileIndex = geojsonvt(JSON.parse(resp.response), options);
+  canvas.drawTile = function(canvas, tilePoint, zoom) {
+    var ctx = canvas.getContext('2d');
+    var tile = tileIndex.getTile(zoom, tilePoint.x, tilePoint.y);
+    if(!tile) return;
+    ctx.strokeStyle = '#f00'; ctx.fillStyle = 'rgba(255,0,0,0.05)';
+    var features = tile.features;
+    for (var i = 0; i < features.length; i++) {
+      var feature = features[i], typeChanged = type !== feature.type,
+        type = feature.type;
+      ctx.beginPath();
+      for (var j = 0; j < feature.geometry.length; j++) {
+        var ring = feature.geometry[j];
+        for (var k = 0; k < ring.length; k++) {
+          var p = ring[k];
+          if (k) ctx.lineTo(p[0] / 16.0, p[1] / 16.0);
+          else ctx.moveTo(p[0] / 16.0, p[1] / 16.0);
+        }
+      }
+      if (type === 3) ctx.fill('evenodd');
+      ctx.stroke();
+    }
+  };
+}, true);
+
+
+var map = L.map('mapdiv', {
+  center: [43.6532,-79.3832], zoom: 5,
+  layers: [std,canvas,decemArea]});
+
+var hash = L.hash(map);
+L.control.layers({'Basemap': std},
+  {'canvas': canvas},{'decemArea': decemArea}).addTo(map)
+;
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
